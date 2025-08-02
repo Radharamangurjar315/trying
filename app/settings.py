@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     PINECONE_INDEX_NAME: str
     port:int
     GeminiKey:str
+    Token:str
     class Config:
         env_file = ".env"
 
