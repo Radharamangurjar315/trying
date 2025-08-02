@@ -65,7 +65,6 @@ pdfminer.six==20250506
 pdfplumber==0.11.7
 pillow==11.3.0
 pinecone==7.3.0
-pinecone-client==6.0.0
 pinecone-plugin-assistant==1.7.0
 pinecone-plugin-interface==0.0.7
 platformdirs==4.3.6
