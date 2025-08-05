@@ -1,14 +1,12 @@
 ---
-title: Trying
-emoji: 👋
-colorFrom: purple
-colorTo: pink
-sdk: gradio
-sdk_version: 5.40.0
-app_file: app.py
+title: HackrX
+emoji: 🚀
+colorFrom: green
+colorTo: blue
+sdk: docker 
+app_port: 3000
 pinned: false
 ---
 
-# My Hugging Face Gradio App
-
-This Space uses Gradio to provide a simple greeting interface.
+# HackrX FastAPI App
+Pure FastAPI application deployed on Hugging Face Spaces
