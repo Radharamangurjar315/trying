@@ -1,7 +1,7 @@
 # Use slim-bookworm for latest security patches
 FROM python:3.12-slim-bookworm
 
-WORKDIR /home/user/app
+WORKDIR /home/user
 
 # Upgrade pip/tools
 RUN pip install --no-cache-dir pip setuptools wheel --upgrade
