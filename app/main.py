@@ -7,6 +7,10 @@ from app.controller.Interface import router as interface_router
 app = FastAPI(title="Custom Embedder API")
 port = settings.port
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Custom Embedder API!"}
+
 @app.get("/emb-status")
 async def get_status():
     return {"status": "ok", "message": f"Server is live! at {port}"}
