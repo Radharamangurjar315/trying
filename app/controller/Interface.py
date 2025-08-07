@@ -1,76 +1,62 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter
+from app.models.request_model import EmbedRequest
+from app.services.embedder import embedder_instance
 from pydantic import BaseModel
-from typing import List, Any
-import requests
-
 from app.services.GetAnswer import process_api_results
-from app.settings import settings
-
+from app.services.vector_store import generate_namespace_from_url, namespace_exists, upsert_vectors
+from typing import List
+import requests
 router = APIRouter()
-ticket = settings.Token
 
 class interface(BaseModel):
-    document_url: str
-    queries: List[str]
-
-class AnswerItem(BaseModel):
-    question: str
-    answer: str
+    documents:str
+    questions: List[str]
 
 class interfaceResponse(BaseModel):
-    status: str
-    message: str
-    answers: List[AnswerItem]
+    answers: List  # Each dict will have {query, chunks}
+    
+@router.post("/v1/hackrx/run",response_model=interfaceResponse)
 
+def main(req: interface):
 
-@router.post("/v1/hackrx/run", response_model=interfaceResponse)
-def main(req: interface, authorization: str = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    namespace = generate_namespace_from_url(req.documents)
 
-    token = authorization.split(" ")[1]
-    if token != ticket:
-        raise HTTPException(status_code=403, detail="Invalid token")
+    if namespace_exists(namespace):
 
-    # Step 1: Chunking
-    try:
-        response = requests.post("http://localhost:3000/api/extract-info", json={"document_url": req.document_url})
-        response.raise_for_status()
+        queries = req.questions
+ 
+        payload2 = {"queries":queries,"namespace":namespace}
+
+        response1 = requests.post("http://localhost:3000/api/query",json=payload2)
+    
+        finalres = process_api_results(response1.json())
+    
+        return {"status": "ok", "message": "Successful Opr","answers":finalres}
+    else:
+        namespace = generate_namespace_from_url(req.documents)
+        payload = { "document_url": req.documents}
+    
+        response = requests.post("http://localhost:3000/api/extract-info", json=payload)  #For chunking
+
         data = response.json()
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"extract-info failed: {str(e)}")
-    except ValueError:
-        raise HTTPException(status_code=500, detail=f"extract-info returned invalid JSON: {response.text}")
 
-    chunk_list = data.get("chunk_list")
-    if not chunk_list:
-        raise HTTPException(status_code=500, detail="No chunks found in extract-info response")
+        chunk_list = data["chunk_list"]  # Chunk list created from document's raw text
+    
+        payload1 = {"texts":chunk_list,"namespace":namespace}
 
-    # Step 2: Embedding
-    try:
-        embed_response = requests.post("http://localhost:3000/api/embed", json={"texts": chunk_list})
-        embed_response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"embed failed: {str(e)}")
+        emb_res = requests.post("http://localhost:3000/api/embed", json=payload1).json() #chunklist is embedded and saved to pinecone
+        if emb_res.get("status")=='ok':
+            import time
+            time.sleep(5)
+            queries = req.questions
+ 
+            payload2 = {"queries":queries,"namespace":namespace}
 
-    # Step 3: Querying
-    try:
-        response1 = requests.post("http://localhost:3000/api/query", json={"queries": req.queries})
-        response1.raise_for_status()
-        result_data = response1.json()
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"query failed: {str(e)}")
-    except ValueError:
-        raise HTTPException(status_code=500, detail=f"query returned invalid JSON: {response1.text}")
-
-    # Step 4: Process Results
-    answers = process_api_results(result_data)  # assumed to be a list of answers
-
-    # Pair questions with answers
-    paired_qa = [{"question": q, "answer": a} for q, a in zip(req.queries, answers)]
-
-    return {
-        "status": "ok",
-        "message": "Successful Operation",
-        "answers": paired_qa
-    }
+            response1 = requests.post("http://localhost:3000/api/query",json=payload2)
+    
+            finalres = process_api_results(response1.json())
+    
+            return {"status": "ok", "message": "Successful Opr","answers":finalres}
+        else:
+            print("❌ Embedding failed. Stopping process.")
+            return {"status": "error", "message": "Embedding failed", "answers": []}

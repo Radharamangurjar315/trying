@@ -3,3 +3,4 @@ from typing import List
 
 class EmbedRequest(BaseModel):
     texts: List[str]
+    namespace: str

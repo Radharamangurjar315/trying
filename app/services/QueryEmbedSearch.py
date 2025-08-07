@@ -1,12 +1,12 @@
 from app.services.vector_store import index  # pinecone.Index instance
 from app.services.embedder import embedder_instance
 from datetime import datetime
-def query_pinecone(query_text: str, top_k=5):
+def query_pinecone(query_text: str, namespace: str, top_k=5):
     # Embed user query
     query_embedding = embedder_instance.model.encode([query_text], normalize_embeddings=True)[0].tolist()
     # Query Pinecone
     results = index.query(
-    namespace="__default__",
+    namespace=namespace,
     vector=query_embedding, 
     top_k=5,
     include_metadata=True,

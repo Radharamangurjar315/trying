@@ -6,6 +6,6 @@ router = APIRouter()
 
 @router.post("/embed")
 def embed_texts(req: EmbedRequest):
-    vectors = embedder_instance.get_embeddings(req.texts)
+    vectors = embedder_instance.get_embeddings(req.texts,req.namespace)
     print("Chunks Are embedded and Saved")
     return {"status": "ok", "message": f"work is done"}
